@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Documentation</title>
+    
+    <!-- ═══════════════════════════════════════════════╗
+    ║  🎨 CSS Architecture - Modular Design         ║
+    ╚═══════════════════════════════════════════════ -->
+    <link rel="stylesheet" href="assets/css/common.css">
+    <link rel="stylesheet" href="assets/css/ai-translator.css">  
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+
+<body>
+    <!-- Header will be loaded dynamically by JavaScript -->
+    
+    <main>
+        <section>
+            <h2>Getting Started</h2>
+            <p>Video / Image 管理アプリをローカルで動かすための最短手順です。</p>
+            
+            <h3>📋 Prerequisites</h3>
+            <ul>
+                <li>Node.js (v16 以上推奨)</li>
+                <li>Python (v3.10 以上推奨)</li>
+                <li>Git</li>
+            </ul>
+            
+            <h3>🚀 Installation</h3>
+            <ol>
+                <li>リポジトリを取得:
+                    <pre><code>git clone &lt;this-repository-url&gt;</code></pre>
+                </li>
+                <li>プロジェクト直下へ移動:
+                    <pre><code>cd web-react-video-image-manage</code></pre>
+                </li>
+                <li>一括セットアップ:
+                    <pre><code>npm run setup</code></pre>
+                </li>
+            </ol>
+            
+            <h3>▶️ Running the Application</h3>
+            <ol>
+                <li>バックエンド + フロントエンドを同時起動:
+                    <pre><code>npm run start:all</code></pre>
+                </li>
+                <li>ドキュメントを開く:
+                    <pre><code>npm run docs</code></pre>
+                </li>
+            </ol>
+
+            <h3>🧭 Basic Workflow</h3>
+            <ol>
+                <li>Video または Image の一覧画面を開く</li>
+                <li>Base Path と Relative Path を指定して検索</li>
+                <li>サムネイル確認、絞り込み、詳細表示、必要に応じてリネーム</li>
+            </ol>
+
+            <h3>⚠️ Troubleshooting</h3>
+            <ul>
+                <li>サムネイルが表示されない場合は backend が起動しているか確認</li>
+                <li>依存関係エラー時は <code>npm run setup</code> を再実行</li>
+                <li>Python 関連エラー時は仮想環境と requirements の再インストールを確認</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Media Management Project. All rights reserved.</p>
+    </footer>
+
+    <script src="assets/js/main_page.js"></script>
+
+</body>
+</html>

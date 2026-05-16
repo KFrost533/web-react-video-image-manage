@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Documentation</title>
+    
+    <!-- ═══════════════════════════════════════════════╗
+    ║  🎨 CSS Architecture - Modular Design         ║
+    ╚═══════════════════════════════════════════════ -->
+    <link rel="stylesheet" href="assets/css/common.css">
+    <link rel="stylesheet" href="assets/css/ai-translator.css">  
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+
+<body>
+    <!-- Header will be loaded dynamically by JavaScript -->
+    
+    <main>
+        <section>
+            <h2>Next Features</h2>
+            <p>Video / Image 管理アプリの今後の開発ロードマップです。</p>
+        </section>
+
+        <!-- Completed Features -->
+        <section>
+            <h3>✅ Recently Completed</h3>
+            <div class="roadmap-timeline">
+                <div class="timeline-item">
+                    <span>🖼️</span>
+                    <div>
+                        <strong>サムネイル表示改善:</strong> ページ遷移時の表示安定化とキャッシュ活用
+                        <br><small>一覧ページでの視認性を向上</small>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <span>📁</span>
+                    <div>
+                        <strong>絞り込み機能:</strong> 拡張子・サイズ・キーワード・タグによる検索
+                        <br><small>動画と画像の探索効率を改善</small>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- High Priority Features -->
+        <section>
+            <h3>🚀 High Priority Development</h3>
+            <div class="roadmap-timeline">
+                <div class="timeline-item priority">
+                    <span>⚡</span>
+                    <div>
+                        <strong>一覧表示パフォーマンス:</strong> 大量ファイル向け仮想スクロールと遅延読み込み
+                        <br><small>サムネイルロードを段階化して体感速度を改善</small>
+                    </div>
+                </div>
+                <div class="timeline-item priority">
+                    <span>🏷️</span>
+                    <div>
+                        <strong>メタデータ管理:</strong> 手動タグ編集・一括分類・検索保存
+                        <br><small>運用時の整理コストを削減</small>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Documentation & Deployment -->
+        <section>
+            <h3>📖 Documentation & Public Release</h3>
+            <div class="demo-card priority-high">
+                <h4>🎯 運用ドキュメント整備</h4>
+                <ol>
+                    <li><strong>画面遷移ガイド:</strong> Video / Image 一覧から詳細までの導線を明文化</li>
+                    <li><strong>障害対応手順:</strong> サムネイル未表示時のチェックリスト化</li>
+                    <li><strong>API 運用規約:</strong> エラーレスポンスと再試行方針の整理</li>
+                </ol>
+            </div>
+        </section>
+
+        <!-- System Architecture -->
+        <section>
+            <h3>🏗️ Next System Architecture (React + FastAPI + Optional Workers)</h3>
+            
+            <div class="demo-grid">
+                <div class="demo-card">
+                    <h4>⚛️ React Frontend</h4>
+                    <ul>
+                        <li><strong>統合メディアビュー:</strong> Video / Image の操作統一</li>
+                        <li><strong>高速検索 UI:</strong> 複合フィルタとページング改善</li>
+                        <li><strong>操作ログ:</strong> 変更履歴の可視化</li>
+                    </ul>
+                </div>
+                
+                <div class="demo-card">
+                    <h4>⚡ FastAPI</h4>
+                    <ul>
+                        <li><strong>サムネイル API:</strong> 生成、配信、既存判定</li>
+                        <li><strong>ファイル情報 API:</strong> 一覧、詳細、リネーム</li>
+                        <li><strong>整合性 API:</strong> JSON キャッシュ状態チェック</li>
+                    </ul>
+                </div>
+                
+                <div class="demo-card">
+                    <h4>🛠️ Worker / Script Layer</h4>
+                    <ul>
+                        <li><strong>定期スキャン:</strong> フォルダ情報更新の自動化</li>
+                        <li><strong>バッチ処理:</strong> 連番リネームやメタ情報整備</li>
+                        <li><strong>障害ログ収集:</strong> サムネイル生成失敗の記録</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Authentication System -->
+        <section>
+            <h3>🔐 Access Control (Optional)</h3>
+            <div class="timeline-item">
+                <span>🔑</span>
+                <div>
+                    <strong>認証導入:</strong> ローカル単体運用から複数ユーザー運用への拡張
+                    <br><small>ユーザーごとの操作権限と履歴管理</small>
+                    <br><small>管理者向けの設定画面を追加予定</small>
+                </div>
+            </div>
+        </section>
+
+        <!-- API Integration -->
+        <section>
+            <h3>🔗 API Integration Roadmap</h3>
+            <div class="demo-card">
+                <h4>🟢 Media Management Pipeline</h4>
+                <p><strong>React UI</strong> ⟹ 操作リクエスト ⟹ <strong>FastAPI</strong></p>
+                <div class="api-flow">
+                    <ol>
+                        <li><strong>FastAPI</strong> ⟹ フォルダスキャン・JSON 生成</li>
+                        <li><strong>FastAPI</strong> ⟹ サムネイル生成・既存画像再利用</li>
+                        <li><strong>FastAPI</strong> ⟹ ファイル詳細・リネーム API 提供</li>
+                        <li><strong>React</strong> ⟹ 一覧画面で可視化・操作完結</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Media Management Project. All rights reserved.</p>
+    </footer>
+
+    <script src="assets/js/main_page.js"></script>
+
+</body>
+</html>

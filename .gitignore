@@ -1,0 +1,202 @@
+# Dependencies
+**/node_modules/
+.pnp
+.pnp.js
+
+**/*.json
+
+# Build outputs
+**/build
+**/coverage
+
+# Environment files
+**/.env*
+
+# Logs and databases
+**/*.log
+**/*.sqlite*
+**/*.db
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/venv/
+
+# Video files
+**/*.mp4
+**/*.avi
+**/*.mov
+**/*.wmv
+**/*.flv
+**/*.webm
+**/*.mkv
+**/*.m4v
+**/*.3gp
+**/*.3g2
+**/*.f4v
+**/*.swf
+**/*.mxf
+**/*.ts
+**/*.m2ts
+**/*.vob
+
+# Audio files
+**/*.mp3
+**/*.wav
+**/*.flac
+**/*.aac
+**/*.ogg
+**/*.wma
+**/*.m4a
+**/*.opus
+**/*.aiff
+**/*.au
+**/*.ra
+
+# Image files
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.bmp
+**/*.tiff
+**/*.tif
+**/*.webp
+**/*.ico
+**/*.svg
+**/*.psd
+**/*.ai
+**/*.eps
+**/*.raw
+**/*.cr2
+**/*.nef
+**/*.orf
+**/*.sr2
+**/*.arw
+**/*.dng
+**/*.heic
+**/*.heif
+
+# Document files
+**/*.pdf
+**/*.doc
+**/*.docx
+**/*.ppt
+**/*.pptx
+**/*.xls
+**/*.xlsx
+**/*.rtf
+**/*.odt
+**/*.ods
+**/*.odp
+
+# Credentials and secrets
+*credentials*
+*credential*
+*token*
+*secret*
+*api_key*
+*apikey*
+*password*
+*passwd*
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+*.jks
+*.keystore
+*.truststore
+.aws/
+**/aws/credentials
+**/aws/config
+**/.ssh/
+**/id_rsa*
+**/id_dsa*
+**/id_ecdsa*
+**/id_ed25519*
+**/.gnupg/
+**/.gpg
+**/private_key*
+**/public_key*
+**/master.key
+**/keyfile*
+
+# Config and data files
+**/*.json
+**/*.csv
+**/*.ini
+**/*.cfg
+**/config/
+
+# Project specific
+**/.vscode/
+**/memo.txt
+**/old/
+**/ascii/
+**/diary/
+**/web-sites-list/results/
+**/plan.txt
+**/secret_path.py
+**/ascii_art.py
+**/search_words.py
+
+# Temporary and backup files
+**/*.tmp
+**/*.temp
+**/*.bak
+**/*.backup
+**/*.orig
+**/*.swp
+**/*.swo
+**/*~
+**/#*#
+**/.#*
+
+# IDE and editor files
+**/.vscode/settings.json
+**/.idea/
+**/*.sublime-project
+**/*.sublime-workspace
+
+# Docker secrets
+**/.dockerignore
+**/docker-compose.override.yml
+**/Dockerfile.local
+**/.docker/
+
+# Cloud and deployment
+**/.terraform/
+**/*.tfstate*
+**/*.tfvars
+**/terraform.tfvars*
+**/.pulumi/
+**/.serverless/
+**/serverless.yml
+**/.kubectl/
+**/.kube/config
+
+# Database and connection files
+**/*.sqlite
+**/*.sqlite3
+**/database.yml
+**/database.json
+**/.env.local
+**/.env.development
+**/.env.production
+**/.env.test
+**/.env.staging
+
+# Cache and session files
+**/.cache/
+**/cache/
+**/sessions/
+**/tmp/
+**/temp/
+**/*.pid
+**/*.lock
+
+# macOS
+**/.DS_Store

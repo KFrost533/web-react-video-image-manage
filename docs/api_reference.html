@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Documentation</title>
+    
+    <!-- ═══════════════════════════════════════════════╗
+    ║  🎨 CSS Architecture - Modular Design         ║
+    ╚═══════════════════════════════════════════════ -->
+    <link rel="stylesheet" href="assets/css/common.css">
+    <link rel="stylesheet" href="assets/css/ai-translator.css">  
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+
+<body>
+    <!-- Header will be loaded dynamically by JavaScript -->
+    
+    <main>
+        <section>
+            <h2>API Reference</h2>
+            <p>Video / Image 管理機能で利用する FastAPI エンドポイントの概要です。</p>
+            
+            <h3>🔗 Base URL</h3>
+            <p><code>http://localhost:5000</code></p>
+            
+            <h3>📚 Available Endpoints</h3>
+            
+            <div class="demo-card">
+                <h4>Folder / JSON</h4>
+                <ul>
+                    <li><strong>GET</strong> <code>/management/folder/view/files</code> - 指定フォルダのファイル一覧を生成</li>
+                    <li><strong>GET</strong> <code>/management/json/list/files</code> - JSON から一覧を取得</li>
+                    <li><strong>GET</strong> <code>/management/folder/check/json</code> - 既存 JSON の存在確認</li>
+                </ul>
+            </div>
+            
+            <div class="demo-card">
+                <h4>Thumbnail / File View</h4>
+                <ul>
+                    <li><strong>GET</strong> <code>/management/file/create/thumbnail</code> - サムネイル生成と返却</li>
+                    <li><strong>GET</strong> <code>/management/file/view/thumbnail</code> - サムネイル画像配信</li>
+                    <li><strong>GET</strong> <code>/management/file/view/thumbnail/exists</code> - 既存サムネイル確認</li>
+                    <li><strong>GET</strong> <code>/management/file/view/details</code> - ファイル詳細取得</li>
+                </ul>
+            </div>
+
+            <div class="demo-card">
+                <h4>Rename / Edit</h4>
+                <ul>
+                    <li><strong>POST</strong> <code>/management/file/changename/single</code> - 単体リネーム</li>
+                    <li><strong>POST</strong> <code>/management/file/changename/several</code> - 複数リネーム</li>
+                </ul>
+            </div>
+            
+            <h3>📖 Interactive Documentation</h3>
+            <p>Access the interactive API documentation at:</p>
+            <ul>
+                <li><a href="http://localhost:5000/docs">Swagger UI</a></li>
+                <li><a href="http://localhost:5000/redoc">ReDoc</a></li>
+            </ul>
+            
+            <h3>🧪 Example Request</h3>
+            <pre><code>curl "http://localhost:5000/management/file/create/thumbnail?id=1&jsonPath=C%3A%5C%5Cpath%5C%5Cfile_list.json"</code></pre>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Media Management Project. All rights reserved.</p>
+    </footer>
+
+    <script src="assets/js/main_page.js"></script>
+
+</body>
+</html>
