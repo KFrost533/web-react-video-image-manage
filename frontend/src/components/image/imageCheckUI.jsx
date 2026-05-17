@@ -192,6 +192,8 @@ function PictureViewerPage() {
     // Rename check state
     const [checkedFiles, setCheckedFiles] = useState({});
     const [pendingTagMap, setPendingTagMap] = useState({});
+    const [isApplyingFolderTag, setIsApplyingFolderTag] = useState(false);
+    const [autoTagOnFolderSelect, setAutoTagOnFolderSelect] = useState('');
 
     const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp']; 
     // Get imageFiles from folderData to include filtering
@@ -380,6 +382,9 @@ function PictureViewerPage() {
         });
     };
 
+    const hasTag = (file, tag) => Array.isArray(file?.tags) && file.tags.includes(tag);
+
+    // Apply all tags in chosen files at once
     const applyPendingTags = async () => {
         if (!fileJsonPath) {
             setError('JSON path is not available. Please reload the folder data.');
@@ -420,6 +425,81 @@ function PictureViewerPage() {
         } catch (error) {
             console.error('Error applying pending tags:', error);
             setError(`Error applying tags: ${error.message}`);
+        }
+    };
+
+    // Apply, add, or remove a tag for the current folder or a specified list of files.
+    const applyTagToCurrentFolder = async (tag, options = {}) => {
+        const targetJsonPath = options.jsonPath || fileJsonPath;
+        const targetFiles = Array.isArray(options.files) ? options.files : allFilesData;
+        const silentNoop = Boolean(options.silentNoop);
+        const mode = options.mode || 'toggle';
+
+        if (!isQuickTag(tag)) {
+            setError(`Tag filter is limited to: ${quickTagButtons.join(', ')}`);
+            return;
+        }
+
+        if (!targetJsonPath) {
+            setError('JSON path is not available. Please reload the folder data.');
+            return;
+        }
+
+        if (!Array.isArray(targetFiles) || targetFiles.length === 0) {
+            setError('No files are loaded for the selected folder.');
+            return;
+        }
+
+        const updates = targetFiles
+            .filter(file => Number.isFinite(Number(file.id)))
+            .map(file => {
+                const fileHasTag = hasTag(file, tag);
+
+                if (mode === 'add') {
+                    return fileHasTag ? null : { fileId: Number(file.id), tags: [tag] };
+                }
+
+                if (mode === 'remove') {
+                    return fileHasTag ? { fileId: Number(file.id), removeTags: [tag] } : null;
+                }
+
+                return fileHasTag
+                    ? { fileId: Number(file.id), removeTags: [tag] }
+                    : { fileId: Number(file.id), tags: [tag] };
+            })
+            .filter(Boolean);
+
+        if (updates.length === 0) {
+            if (!silentNoop) {
+                setError(null);
+            }
+            return;
+        }
+
+        setIsApplyingFolderTag(true);
+        try {
+            const response = await BatchAddTagsToFiles({
+                jsonPath: targetJsonPath,
+                updates
+            });
+
+            if (response.status === 'success' && Array.isArray(response.files)) {
+                setAllFilesData(response.files);
+                setFolderData(response.files);
+
+                const refreshedTags = quickTagButtons.filter(tag =>
+                    response.files.some(file => Array.isArray(file.tags) && file.tags.includes(tag))
+                );
+                setTagsList(refreshedTags);
+                setError(null);
+            } else {
+                setError(`Failed to apply folder tag: ${response.message || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error applying folder tag:', error);
+            setError(`Error applying folder tag: ${error.message}`);
+        } finally {
+            setIsApplyingFolderTag(false);
         }
     };
     
@@ -511,13 +591,25 @@ function PictureViewerPage() {
             return;
         }
 
-        if (!isQuickTag(tag)) {
-            setError(`Tag filter is limited to: ${quickTagButtons.join(', ')}`);
+        const normalizedTag = String(tag || '').trim();
+
+        // Treat empty selection as "show all" without raising an error.
+        if (!normalizedTag) {
+            setFolderData(allFilesData);
+            setError(null);
             return;
         }
 
-        const filteredFiles = allFilesData.filter(file => file.tags && file.tags.includes(tag));
+        if (!isQuickTag(normalizedTag)) {
+            // Ignore unknown tags silently to avoid false error popups.
+            setFolderData(allFilesData);
+            setError(null);
+            return;
+        }
+
+        const filteredFiles = allFilesData.filter(file => file.tags && file.tags.includes(normalizedTag));
         setFolderData(filteredFiles); // Display all filtered files
+        setError(null);
     };
 
     const clearTagFilter = async () => {
@@ -526,6 +618,7 @@ function PictureViewerPage() {
             return;
         }
         setFolderData(allFilesData); // Display all data
+        setError(null);
     };
 
     // tag listup function to use as options in tag filter
@@ -575,6 +668,15 @@ function PictureViewerPage() {
                                 setFileJsonPath(existingCheck.json_path);
                                 setAllFilesData(data.files);
                                 setFolderData(data.files);
+                                if (autoTagOnFolderSelect && isQuickTag(autoTagOnFolderSelect)) {
+                                    await applyTagToCurrentFolder(autoTagOnFolderSelect, {
+                                        files: data.files,
+                                        jsonPath: existingCheck.json_path,
+                                        mode: 'add',
+                                        silentNoop: true
+                                    });
+                                }
+
                                 setError(null);
                                 setIsLoading(false);
                                 
@@ -628,6 +730,15 @@ function PictureViewerPage() {
                 
                 console.log(`Loaded and displaying all ${json_folder_list.files.length} files`);
                 tagsListup(json_folder_list.files); // Update tag list
+
+                if (autoTagOnFolderSelect && isQuickTag(autoTagOnFolderSelect)) {
+                    await applyTagToCurrentFolder(autoTagOnFolderSelect, {
+                        files: json_folder_list.files,
+                        jsonPath: json_path,
+                        mode: 'add',
+                        silentNoop: true
+                    });
+                }
 
                 setError(null);
                 setIsLoading(false);            
@@ -1097,6 +1208,38 @@ function PictureViewerPage() {
                         borderRadius: '15px',
                         border: '1px solid #dee2e6'
                     }}>
+                        <div style={{ marginBottom: '12px' }}>
+                            <label style={{
+                                display: 'block',
+                                marginBottom: '6px',
+                                fontWeight: '600',
+                                color: '#495057',
+                                fontSize: '13px'
+                            }}>
+                                🏷️ Auto-apply this tag when folder loads
+                            </label>
+                            <select
+                                value={autoTagOnFolderSelect}
+                                onChange={(e) => setAutoTagOnFolderSelect(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '10px 12px',
+                                    border: '2px solid #dee2e6',
+                                    borderRadius: '8px',
+                                    fontSize: '13px',
+                                    backgroundColor: '#fff'
+                                }}
+                            >
+                                <option value="">Disabled</option>
+                                {quickTagButtons.map(tag => (
+                                    <option key={`auto-tag-${tag}`} value={tag}>{tag}</option>
+                                ))}
+                            </select>
+                            <small style={{ color: '#666', fontSize: '12px', marginTop: '5px', display: 'block' }}>
+                                When a folder is loaded, this tag is added to every file in that folder.
+                            </small>
+                        </div>
+
                         <button 
                             onClick={() => handleSearch(false)}
                             disabled={isLoading || !basePath || !relativePath}
@@ -1226,6 +1369,59 @@ function PictureViewerPage() {
                             }}>
                                 🔍 Filtering Options
                             </h3>
+
+                            <div style={{ marginBottom: '1rem' }}>
+                                <div style={{
+                                    fontSize: '13px',
+                                    fontWeight: '700',
+                                    color: '#495057',
+                                    marginBottom: '8px'
+                                }}>
+                                    ⚡ Folder-wide tag toggle
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                    {quickTagButtons.map((tag) => {
+                                        const isAppliedToAll = Array.isArray(allFilesData)
+                                            && allFilesData.length > 0
+                                            && allFilesData.every(item => Array.isArray(item.tags) && item.tags.includes(tag));
+                                        const isAppliedToSome = Array.isArray(allFilesData)
+                                            && allFilesData.some(item => Array.isArray(item.tags) && item.tags.includes(tag));
+
+                                        return (
+                                            <button
+                                                key={`folder-quick-tag-${tag}`}
+                                                type="button"
+                                                disabled={isApplyingFolderTag || !allFilesData || allFilesData.length === 0}
+                                                onClick={() => applyTagToCurrentFolder(tag, {
+                                                    mode: isAppliedToAll ? 'remove' : 'add'
+                                                })}
+                                                style={{
+                                                    padding: '6px 10px',
+                                                    border: 'none',
+                                                    borderRadius: '999px',
+                                                    fontSize: '12px',
+                                                    fontWeight: '700',
+                                                    cursor: (isApplyingFolderTag || !allFilesData || allFilesData.length === 0) ? 'not-allowed' : 'pointer',
+                                                    background: isAppliedToAll
+                                                        ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
+                                                        : isAppliedToSome
+                                                            ? 'linear-gradient(135deg, #f59e0b, #d97706)'
+                                                            : 'linear-gradient(135deg, #0f766e, #14b8a6)',
+                                                    color: '#fff',
+                                                    opacity: (isApplyingFolderTag || !allFilesData || allFilesData.length === 0) ? 0.7 : 1,
+                                                    boxShadow: isAppliedToAll
+                                                        ? 'none'
+                                                        : isAppliedToSome
+                                                            ? '0 4px 10px rgba(245, 158, 11, 0.22)'
+                                                            : '0 4px 10px rgba(20, 184, 166, 0.22)'
+                                                }}
+                                            >
+                                                {isAppliedToAll ? `✓ ${tag}` : isAppliedToSome ? `↔ ${tag}` : tag}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
                             
                             <div style={{
                                 display: 'grid',
@@ -1967,7 +2163,7 @@ function PictureViewerPage() {
                                                                 fontSize: '11px',
                                                                 color: '#6c757d'
                                                             }}>
-                                                                select then apply
+                                                                click to add, or remove if already tagged
                                                             </span>
                                                         </div>
                                                         <div style={{
@@ -1976,18 +2172,23 @@ function PictureViewerPage() {
                                                             gap: '8px'
                                                         }}>
                                                             {quickTagButtons.map((tag) => {
-                                                                const alreadyTagged = Array.isArray(file.tags) && file.tags.includes(tag);
+                                                                const alreadyTagged = hasTag(file, tag);
                                                                 const isPending = Array.isArray(pendingTagMap[file.id]) && pendingTagMap[file.id].includes(tag);
                                                                 return (
                                                                     <button
                                                                         key={`${file.id}-${tag}`}
                                                                         type="button"
-                                                                        disabled={alreadyTagged}
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
-                                                                            if (!alreadyTagged) {
-                                                                                togglePendingTag(file.id, tag);
+                                                                            if (alreadyTagged) {
+                                                                                applyTagToCurrentFolder(tag, {
+                                                                                    files: [file],
+                                                                                    mode: 'remove',
+                                                                                    silentNoop: true
+                                                                                });
+                                                                                return;
                                                                             }
+                                                                            togglePendingTag(file.id, tag);
                                                                         }}
                                                                         style={{
                                                                             padding: '6px 10px',
@@ -1995,7 +2196,7 @@ function PictureViewerPage() {
                                                                             borderRadius: '999px',
                                                                             fontSize: '12px',
                                                                             fontWeight: '700',
-                                                                            cursor: alreadyTagged ? 'not-allowed' : 'pointer',
+                                                                            cursor: 'pointer',
                                                                             background: alreadyTagged
                                                                                 ? 'linear-gradient(135deg, #d1d5db, #9ca3af)'
                                                                                 : isPending

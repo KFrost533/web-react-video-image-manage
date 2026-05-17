@@ -9,6 +9,7 @@ com\automation\video\VideoFilenameConverter.class
 com\automation\controller\VideoManagementController.class
 com\automation\Application.class
 com\automation\controller\VideoManagementController$3.class
+com\automation\controller\ImageManagementController$1.class
 com\automation\controller\VideoManagementController$2.class
 com\automation\controller\VideoManagementController$1.class
 com\automation\image\ImageFilenameConverter.class

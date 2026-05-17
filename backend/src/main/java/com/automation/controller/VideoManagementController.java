@@ -19,8 +19,6 @@ import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.Java2DFrameConverter;
 
-import java.awt.Color;
-import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
@@ -452,6 +450,77 @@ public class VideoManagementController {
                 "timestamp", System.currentTimeMillis());
     }
 
+    /**
+     * GET /management/video/file/thumbnail
+     * Generate (or reuse) thumbnail image for a file entry and return it.
+     */
+    @GetMapping({ "/video/file/thumbnail", "/file/create/thumbnail" })
+    public ResponseEntity<Resource> viewFileThumbnail(
+            @RequestParam int id,
+            @RequestParam String jsonPath,
+            @RequestParam(required = false, defaultValue = "") String relativePath,
+            @RequestParam(required = false, defaultValue = "false") boolean forceRegenerate) {
+        try {
+            Optional<Map<String, Object>> fileInfoOpt = findFileInfoById(id, jsonPath);
+            if (fileInfoOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            String filePath = String.valueOf(fileInfoOpt.get().getOrDefault("path", ""));
+            if (filePath.isBlank()) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            Path sourcePath = Paths.get(filePath);
+            if (!Files.exists(sourcePath) || !Files.isRegularFile(sourcePath)) {
+                return ResponseEntity.notFound().build();
+            }
+
+            String fileName = sourcePath.getFileName().toString();
+            String extension = "";
+            int dot = fileName.lastIndexOf('.');
+            if (dot >= 0 && dot < fileName.length() - 1) {
+                extension = fileName.substring(dot + 1).toLowerCase(Locale.ROOT);
+            }
+
+            Path thumbnailDir = Paths.get(resolveThumbnailBasePath(relativePath));
+            Files.createDirectories(thumbnailDir);
+
+            String baseName = (dot > 0) ? fileName.substring(0, dot) : fileName;
+            String safeBaseName = baseName.replaceAll("[^a-zA-Z0-9._-]", "_");
+            Path thumbnailPath = thumbnailDir.resolve(id + "_" + safeBaseName + ".png");
+
+            boolean needsGeneration = forceRegenerate || !Files.exists(thumbnailPath)
+                    || Files.getLastModifiedTime(thumbnailPath).toMillis() < Files.getLastModifiedTime(sourcePath)
+                            .toMillis();
+
+            if (needsGeneration) {
+                if (!isVideoExtension(extension)) {
+                    return ResponseEntity.badRequest().build();
+                }
+
+                boolean generated = createVideoThumbnail(sourcePath, thumbnailPath);
+                if (!generated) {
+                    return ResponseEntity.badRequest().build();
+                }
+            }
+
+            Resource resource = new FileSystemResource(thumbnailPath);
+            if (!resource.exists()) {
+                return ResponseEntity.internalServerError().build();
+            }
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "inline; filename=\"" + thumbnailPath.getFileName().toString() + "\"")
+                    .contentType(MediaType.IMAGE_PNG)
+                    .body(resource);
+        } catch (Exception e) {
+            logger.error("Error generating thumbnail: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     private Optional<Map<String, Object>> findFileInfoById(int id, String jsonPath) throws IOException {
         Path path = Paths.get(jsonPath);
         if (!Files.exists(path)) {
@@ -516,50 +585,14 @@ public class VideoManagementController {
         return Paths.get(configuredPath, relativePath).toString();
     }
 
-    private boolean createThumbnailForFile(Path sourcePath, Path thumbnailPath, String extension) {
-        try {
-            if (extension.equals("png") || extension.equals("jpg") || extension.equals("jpeg")
-                    || extension.equals("bmp") || extension.equals("gif") || extension.equals("webp")) {
-                createImageThumbnail(sourcePath, thumbnailPath);
-                return true;
-            }
-
-            if (extension.equals("mp4") || extension.equals("avi") || extension.equals("mov")
-                    || extension.equals("mkv") || extension.equals("wmv") || extension.equals("flv")
-                    || extension.equals("webm")) {
-                return createVideoThumbnail(sourcePath, thumbnailPath);
-            }
-
-            return false;
-        } catch (Exception e) {
-            logger.warn("Thumbnail generation failed for {}: {}", sourcePath, e.getMessage());
-            return false;
-        }
-    }
-
-    private void createImageThumbnail(Path sourcePath, Path thumbnailPath) throws IOException {
-        BufferedImage source = javax.imageio.ImageIO.read(sourcePath.toFile());
-        if (source == null) {
-            throw new IOException("Could not read image file: " + sourcePath);
-        }
-
-        int max = 128;
-        int srcW = source.getWidth();
-        int srcH = source.getHeight();
-
-        double scale = Math.min((double) max / srcW, (double) max / srcH);
-        scale = Math.min(scale, 1.0d);
-
-        int dstW = Math.max(1, (int) Math.round(srcW * scale));
-        int dstH = Math.max(1, (int) Math.round(srcH * scale));
-
-        BufferedImage target = new BufferedImage(dstW, dstH, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = target.createGraphics();
-        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        g.drawImage(source, 0, 0, dstW, dstH, null);
-        g.dispose();
-
-        javax.imageio.ImageIO.write(target, "png", thumbnailPath.toFile());
+    private boolean isVideoExtension(String extension) {
+        return extension.equals("mp4")
+                || extension.equals("avi")
+                || extension.equals("mov")
+                || extension.equals("mkv")
+                || extension.equals("wmv")
+                || extension.equals("flv")
+                || extension.equals("webm");
     }
 
     private boolean createVideoThumbnail(Path sourcePath, Path thumbnailPath) {
@@ -598,19 +631,5 @@ public class VideoManagementController {
             logger.warn("Video thumbnail creation failed for {}: {}", sourcePath, e.getMessage());
             return false;
         }
-    }
-
-    private void createDummyThumbnail(Path thumbnailPath) throws IOException {
-        BufferedImage img = new BufferedImage(320, 180, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = img.createGraphics();
-        g.setColor(Color.BLACK);
-        g.fillRect(0, 0, 320, 180);
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("SansSerif", Font.BOLD, 18));
-        g.drawString("Video Thumbnail", 78, 80);
-        g.drawString("Not Available", 95, 110);
-        g.dispose();
-
-        javax.imageio.ImageIO.write(img, "png", thumbnailPath.toFile());
     }
 }

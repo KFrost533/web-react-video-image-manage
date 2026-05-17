@@ -69,7 +69,12 @@ export async function ChangeNameSeveral(requestData) {
  * @returns {Promise} API response
  */
 export async function AddTagToFile(requestData) {
-    return await apiPost(`/management/file/tag/add`, requestData);
+    try {
+        return await apiPost(`/management/file/tag/add`, requestData);
+    } catch (error) {
+        // Fallback for environments exposing only the image-scoped route.
+        return await apiPost(`/management/image/file/tag/add`, requestData);
+    }
 }
 
 /**
@@ -82,7 +87,12 @@ export async function AddTagToFile(requestData) {
  * @returns {Promise} API response
  */
 export async function BatchAddTagsToFiles(requestData) {
-    return await apiPost(`/management/file/tag/batch-add`, requestData);
+    try {
+        return await apiPost(`/management/file/tag/batch-add`, requestData);
+    } catch (error) {
+        // Fallback for environments exposing only the image-scoped route.
+        return await apiPost(`/management/image/file/tag/batch-add`, requestData);
+    }
 }
 
 /**

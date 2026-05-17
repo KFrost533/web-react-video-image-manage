@@ -271,6 +271,189 @@ public class ImageManagementController {
     }
 
     /**
+     * POST /management/file/tag/add (legacy)
+     * POST /management/image/file/tag/add
+     * Add a single tag to one file entry in JSON cache.
+     */
+    @PostMapping({ "/file/tag/add", "/image/file/tag/add" })
+    public Map<String, Object> addTagToFile(@RequestBody Map<String, Object> request) {
+        try {
+            if (request == null) {
+                return errorResponse("request body is required");
+            }
+
+            String jsonPath = String.valueOf(request.getOrDefault("jsonPath", ""));
+            Object fileIdObj = request.get("fileId");
+            String tag = String.valueOf(request.getOrDefault("tag", "")).trim();
+
+            if (jsonPath.isBlank()) {
+                return Map.of("status", "error", "message", "jsonPath is required");
+            }
+            if (fileIdObj == null) {
+                return Map.of("status", "error", "message", "fileId is required");
+            }
+            if (tag.isBlank()) {
+                return Map.of("status", "error", "message", "tag is required");
+            }
+
+            int fileId = (fileIdObj instanceof Number)
+                    ? ((Number) fileIdObj).intValue()
+                    : Integer.parseInt(String.valueOf(fileIdObj));
+
+            Map<String, Object> update = new HashMap<>();
+            update.put("fileId", fileId);
+            update.put("tags", List.of(tag));
+
+            return applyTagUpdates(jsonPath, List.of(update));
+        } catch (Exception e) {
+            logger.error("Error adding tag: {}", e.getMessage(), e);
+            return errorResponse(e);
+        }
+    }
+
+    /**
+     * POST /management/file/tag/batch-add (legacy)
+     * POST /management/image/file/tag/batch-add
+     * Add tags to multiple file entries in JSON cache.
+     */
+    @PostMapping({ "/file/tag/batch-add", "/image/file/tag/batch-add" })
+    public Map<String, Object> batchAddTagsToFiles(@RequestBody Map<String, Object> request) {
+        try {
+            if (request == null) {
+                return errorResponse("request body is required");
+            }
+
+            String jsonPath = String.valueOf(request.getOrDefault("jsonPath", ""));
+            Object updatesObj = request.get("updates");
+
+            if (jsonPath.isBlank()) {
+                return Map.of("status", "error", "message", "jsonPath is required");
+            }
+            if (!(updatesObj instanceof List<?>)) {
+                return Map.of("status", "error", "message", "updates is required");
+            }
+            List<?> updates = (List<?>) updatesObj;
+            if (updates.isEmpty()) {
+                return Map.of("status", "error", "message", "updates is required");
+            }
+
+            return applyTagUpdates(jsonPath, updates);
+        } catch (Exception e) {
+            logger.error("Error applying batch tags: {}", e.getMessage(), e);
+            return errorResponse(e);
+        }
+    }
+
+    private Map<String, Object> errorResponse(Exception e) {
+        String message = e.getMessage();
+        if (message == null || message.isBlank()) {
+            message = e.getClass().getSimpleName();
+        }
+        return errorResponse(message);
+    }
+
+    private Map<String, Object> errorResponse(String message) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "error");
+        response.put("message", message == null || message.isBlank() ? "unknown error" : message);
+        return response;
+    }
+
+    private Map<String, Object> applyTagUpdates(String jsonPath, List<?> updates) throws IOException {
+        Path jsonFilePath = Paths.get(jsonPath);
+        if (!Files.exists(jsonFilePath) || !Files.isRegularFile(jsonFilePath)) {
+            return Map.of("status", "error", "message", "JSON file does not exist: " + jsonPath);
+        }
+
+        Type listType = new TypeToken<List<Map<String, Object>>>() {
+        }.getType();
+        List<Map<String, Object>> files = gson.fromJson(Files.readString(jsonFilePath), listType);
+        if (files == null) {
+            files = new ArrayList<>();
+        }
+
+        Map<Integer, Map<String, Object>> byId = new HashMap<>();
+        for (Map<String, Object> file : files) {
+            Object idObj = file.get("id");
+            if (idObj == null) {
+                continue;
+            }
+            int id = (idObj instanceof Number)
+                    ? ((Number) idObj).intValue()
+                    : Integer.parseInt(String.valueOf(idObj));
+            byId.put(id, file);
+        }
+
+        int updatedCount = 0;
+        for (Object updateObj : updates) {
+            if (!(updateObj instanceof Map<?, ?>)) {
+                continue;
+            }
+            Map<?, ?> rawUpdate = (Map<?, ?>) updateObj;
+
+            Object fileIdObj = rawUpdate.get("fileId");
+            Object tagsObj = rawUpdate.get("tags");
+            Object removeTagsObj = rawUpdate.get("removeTags");
+            if (fileIdObj == null) {
+                continue;
+            }
+
+            List<?> incomingTags = tagsObj instanceof List<?> ? (List<?>) tagsObj : Collections.emptyList();
+            List<?> removeTags = removeTagsObj instanceof List<?> ? (List<?>) removeTagsObj : Collections.emptyList();
+
+            if (incomingTags.isEmpty() && removeTags.isEmpty()) {
+                continue;
+            }
+
+            int fileId = (fileIdObj instanceof Number)
+                    ? ((Number) fileIdObj).intValue()
+                    : Integer.parseInt(String.valueOf(fileIdObj));
+
+            Map<String, Object> target = byId.get(fileId);
+            if (target == null) {
+                continue;
+            }
+
+            Set<String> merged = new LinkedHashSet<>();
+            Object currentTagsObj = target.get("tags");
+            if (currentTagsObj instanceof List<?>) {
+                List<?> currentTags = (List<?>) currentTagsObj;
+                for (Object value : currentTags) {
+                    String tag = String.valueOf(value).trim();
+                    if (!tag.isBlank()) {
+                        merged.add(tag);
+                    }
+                }
+            }
+
+            for (Object value : removeTags) {
+                String tag = String.valueOf(value).trim();
+                if (!tag.isBlank()) {
+                    merged.remove(tag);
+                }
+            }
+
+            for (Object value : incomingTags) {
+                String tag = String.valueOf(value).trim();
+                if (!tag.isBlank()) {
+                    merged.add(tag);
+                }
+            }
+
+            target.put("tags", new ArrayList<>(merged));
+            updatedCount++;
+        }
+
+        Files.writeString(jsonFilePath, gson.toJson(files));
+
+        return Map.of(
+                "status", "success",
+                "updated_count", updatedCount,
+                "files", files,
+                "json_path", jsonPath);
+    }
+
+    /**
      * GET /management/image/health
      * Health check endpoint
      */
