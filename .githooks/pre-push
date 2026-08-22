@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+
+cd "$(dirname "$0")/../" || exit
+npm run dist:win all
+npm run dist:mac all
+
+# search all exe files in dist/win and dist/mac and check if they have absolute paths
+# if they do, move them to a top directory
+find dist/ -type f -name "*.exe" -o -name "*.dmg" | while read -r file; do
+  if grep -q "C:\\" "$file"; then
+    cp "$file" dist/
+  fi
+done
