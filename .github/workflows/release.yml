@@ -1,0 +1,117 @@
+name: Release desktop app
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (example: v1.0.1)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+  GH_TOKEN: ${{ secrets.SECRET_TOKEN }}
+
+jobs:
+  create-release:
+    name: Create GitHub release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create or update release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+
+  build-windows:
+    name: Build Windows release
+    needs: create-release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Build Windows packages
+        run: npm run dist:win:all
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Collect Windows assets
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release-assets | Out-Null
+          Copy-Item "STR-Setup.exe" "release-assets/STR-Setup.exe" -Force
+          if (Test-Path "dist/win-unpacked") {
+            Compress-Archive -Path "dist/win-unpacked/*" -DestinationPath "release-assets/STR-x64-portable.zip" -Force
+          }
+          if (Test-Path "dist/win-ia32-unpacked") {
+            Compress-Archive -Path "dist/win-ia32-unpacked/*" -DestinationPath "release-assets/STR-ia32-portable.zip" -Force
+          }
+
+      - name: Upload Windows assets to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          files: |
+            release-assets/STR-Setup.exe
+            release-assets/STR-x64-portable.zip
+            release-assets/STR-ia32-portable.zip
+          fail_on_unmatched_files: true
+
+  build-macos:
+    name: Build macOS release
+    needs: create-release
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Build macOS packages
+        run: npm run dist:mac:all
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Collect macOS assets
+        run: |
+          mkdir -p release-assets
+          cp dist/STR-mac-x64.dmg release-assets/STR-mac-x64.dmg
+          cp dist/STR-mac-arm64.dmg release-assets/STR-mac-arm64.dmg
+          cp dist/STR-mac-x64.zip release-assets/STR-mac-x64.zip
+          cp dist/STR-mac-arm64.zip release-assets/STR-mac-arm64.zip
+
+      - name: Upload macOS assets to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          files: |
+            release-assets/STR-mac-x64.dmg
+            release-assets/STR-mac-arm64.dmg
+            release-assets/STR-mac-x64.zip
+            release-assets/STR-mac-arm64.zip
+          fail_on_unmatched_files: true
