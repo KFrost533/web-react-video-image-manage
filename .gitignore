@@ -131,6 +131,10 @@
 **/*.cfg
 **/config/
 
+# Frontend dependency manifests
+!frontend/package.json
+!frontend/package-lock.json
+
 # Project specific
 **/.vscode/
 **/memo.txt

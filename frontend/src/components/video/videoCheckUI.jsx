@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PickBaseFolder } from '../../api/imageManagementApi';
 
 function VideoCheckPage() {
     const navigate = useNavigate();
@@ -18,7 +19,7 @@ function VideoCheckPage() {
     // all folder data - restore from localStorage if available
     const [folderData, setFolderData] = useState(() => {
         const cached = localStorage.getItem('folderManagement_folderData');
-        return cached ? JSON.parse(cached) : null;
+        return cached ? JSON.parse(cached) : [];
     });
 
     // all files data (complete dataset) - restore from localStorage if available
@@ -120,13 +121,33 @@ function VideoCheckPage() {
     const [error, setError] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
+    const handlePickBasePath = async () => {
+        try {
+            const picked = await PickBaseFolder();
+            if (picked.status === 'success' && picked.base_path) {
+                setBasePath(picked.base_path);
+                setRelativePath('');
+                setFolderPath('');
+                setError(null);
+            } else if (picked.status === 'error') {
+                setError(picked.message || 'Failed to pick base folder.');
+            }
+        } catch (e) {
+            setError(`Failed to open folder picker: ${e.message}`);
+        }
+    };
+
     // Save states to localStorage whenever they change
     useEffect(() => {
         if (basePath) localStorage.setItem('folderManagement_basePath', basePath);
     }, [basePath]);
 
     useEffect(() => {
-        if (relativePath) localStorage.setItem('folderManagement_relativePath', relativePath);
+        if (relativePath) {
+            localStorage.setItem('folderManagement_relativePath', relativePath);
+        } else {
+            localStorage.removeItem('folderManagement_relativePath');
+        }
     }, [relativePath]);
 
     useEffect(() => {
@@ -942,7 +963,7 @@ function VideoCheckPage() {
                 }
                 
                 // Filter and store only video files
-                const videoExtensions = ['.mp4', '.avi', '.mov', '.mkv', '.flv'];
+                const videoExtensions = ['.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.webm', '.m4v', '.3gp', '.3g2', '.f4v', '.swf', '.mxf', '.ts', '.m2ts', '.vob'];
                 const videoOnlyFiles = json_folder_list.files.filter(file => 
                     videoExtensions.some(ext => file.path.toLowerCase().endsWith(ext))
                 );
@@ -993,7 +1014,7 @@ function VideoCheckPage() {
         setPage(1); // Reset pagination
         
         // Trigger search
-        setFileDataGet(true);
+        setFileDataGet(current => !current);
     };
 
     return (
@@ -1196,6 +1217,22 @@ function VideoCheckPage() {
                                     <small style={{ color: '#666', fontSize: '12px', marginTop: '5px', display: 'block' }}>
                                         📂 Enter the base directory path
                                     </small>
+                                    <button
+                                        type="button"
+                                        onClick={handlePickBasePath}
+                                        style={{
+                                            marginTop: '10px',
+                                            padding: '10px 14px',
+                                            backgroundColor: '#007bff',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            fontSize: '14px'
+                                        }}
+                                    >
+                                        📂 Browse Base Folder
+                                    </button>
                                 </td>
                             </tr>
                             <tr>
@@ -1288,24 +1325,24 @@ function VideoCheckPage() {
                     }}>
                         <button 
                             onClick={() => handleSearch()}
-                            disabled={isLoading || !basePath || !relativePath}
+                            disabled={isLoading || !basePath}
                             style={{ 
                                 width: '100%',
                                 padding: '15px 25px',
-                                background: isLoading || !basePath || !relativePath 
+                                background: isLoading || !basePath
                                     ? 'linear-gradient(135deg, #6c757d, #5a6268)' 
                                     : 'linear-gradient(135deg, #28a745, #20c997)',
                                 color: 'white',
                                 border: 'none',
                                 borderRadius: '12px',
-                                cursor: isLoading || !basePath || !relativePath ? 'not-allowed' : 'pointer',
+                                cursor: isLoading || !basePath ? 'not-allowed' : 'pointer',
                                 fontSize: '16px',
                                 fontWeight: 'bold',
                                 transition: 'all 0.3s ease',
                                 boxShadow: '0 4px 15px rgba(40, 167, 69, 0.3)'
                             }}
                             onMouseEnter={(e) => {
-                                if (!isLoading && basePath && relativePath) {
+                                if (!isLoading && basePath) {
                                     e.target.style.transform = 'translateY(-2px)';
                                     e.target.style.boxShadow = '0 6px 20px rgba(40, 167, 69, 0.4)';
                                 }

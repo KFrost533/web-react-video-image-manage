@@ -414,6 +414,21 @@ public class VideoManagementController {
             if (fileName.endsWith(".webm")) {
                 return MediaType.parseMediaType("video/webm");
             }
+            if (fileName.endsWith(".mkv")) {
+                return MediaType.parseMediaType("video/x-matroska");
+            }
+            if (fileName.endsWith(".mpeg") || fileName.endsWith(".mpg")) {
+                return MediaType.parseMediaType("video/mpeg");
+            }
+            if (fileName.endsWith(".m4v")) {
+                return MediaType.parseMediaType("video/x-m4v");
+            }
+            if (fileName.endsWith(".3gp")) {
+                return MediaType.parseMediaType("video/3gpp");
+            }
+            if (fileName.endsWith(".ogv")) {
+                return MediaType.parseMediaType("video/ogg");
+            }
             return MediaType.parseMediaType("video/mp4");
         }
 

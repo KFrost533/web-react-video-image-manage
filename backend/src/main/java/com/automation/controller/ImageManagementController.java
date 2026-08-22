@@ -83,11 +83,19 @@ public class ImageManagementController {
     public Map<String, Object> pickBaseFolder() {
         String psScript = String.join("",
                 "Add-Type -AssemblyName System.Windows.Forms;",
-                "$dialog = New-Object System.Windows.Forms.FolderBrowserDialog;",
-                "$dialog.Description = 'Select Base Folder';",
-                "$dialog.ShowNewFolderButton = $false;",
+                "$dialog = New-Object System.Windows.Forms.OpenFileDialog;",
+                "$dialog.Title = 'Select Base Folder';",
+                "$dialog.ValidateNames = $false;",
+                "$dialog.CheckFileExists = $false;",
+                "$dialog.CheckPathExists = $true;",
+                "$dialog.FileName = 'Select this folder';",
                 "if($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){",
-                "  Write-Output $dialog.SelectedPath",
+                "  $selected = $dialog.FileName;",
+                "  if(-not (Test-Path -LiteralPath $selected -PathType Container)){",
+                "    $selected = Split-Path -Parent $selected",
+                "  }",
+                "  $bytes = [System.Text.Encoding]::UTF8.GetBytes($selected);",
+                "  [Convert]::ToBase64String($bytes)",
                 "}");
 
         ProcessBuilder pb = new ProcessBuilder(
@@ -120,13 +128,17 @@ public class ImageManagementController {
                 }
             }
 
-            String selected = output.toString().trim();
+            String encodedSelected = output.toString().trim();
 
-            if (selected.isEmpty()) {
+            if (encodedSelected.isEmpty()) {
                 return Map.of(
                         "status", "cancelled",
                         "base_path", "");
             }
+
+            String selected = new String(
+                    Base64.getDecoder().decode(encodedSelected),
+                    StandardCharsets.UTF_8);
 
             return Map.of(
                     "status", "success",

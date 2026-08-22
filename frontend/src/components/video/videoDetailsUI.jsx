@@ -17,6 +17,27 @@ function VideoDetailsPage() {
     const [fileNameChange, setFileNameChange] = useState(false);
     const [afterfileName, setAfterFileName] = useState("");
 
+    const videoExtensions = new Set([
+        'mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mpeg', 'mpg', 'm4v', '3gp', 'ogv'
+    ]);
+
+    const normalizedExtension = fileDetails?.extension?.replace('.', '').toLowerCase();
+    const isVideoFile = videoExtensions.has(normalizedExtension);
+    const videoMimeTypes = {
+        mp4: 'video/mp4',
+        mkv: 'video/x-matroska',
+        avi: 'video/x-msvideo',
+        mov: 'video/quicktime',
+        wmv: 'video/x-ms-wmv',
+        flv: 'video/x-flv',
+        webm: 'video/webm',
+        mpeg: 'video/mpeg',
+        mpg: 'video/mpeg',
+        m4v: 'video/x-m4v',
+        '3gp': 'video/3gpp',
+        ogv: 'video/ogg'
+    };
+
     // Fetch file details when component mounts
     useEffect(() => {
         const fetchFileDetails = async () => {
@@ -379,12 +400,7 @@ function VideoDetailsPage() {
                 </table>
 
                 {/* video opening */}
-                {(fileDetails.extension === 'mp4' || fileDetails.extension === '.mp4' || 
-                  fileDetails.extension === 'avi' || fileDetails.extension === '.avi' ||
-                  fileDetails.extension === 'mov' || fileDetails.extension === '.mov' ||
-                  fileDetails.extension === 'wmv' || fileDetails.extension === '.wmv' ||
-                  fileDetails.extension === 'flv' || fileDetails.extension === '.flv' ||
-                  fileDetails.extension === 'webm' || fileDetails.extension === '.webm') && (
+                {isVideoFile && (
                     <div style={{ marginTop: '30px', textAlign: 'center' }}>
                         <h3 style={{
                             marginBottom: '20px',
@@ -404,7 +420,10 @@ function VideoDetailsPage() {
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                             }}
                         >
-                            <source src={`http://localhost:5000/management/file/view/video?id=${fileDetails.id}&jsonPath=${encodeURIComponent(jsonPath)}`} type="video/mp4" />
+                            <source
+                                src={`http://localhost:5000/management/file/view/video?id=${fileDetails.id}&jsonPath=${encodeURIComponent(jsonPath)}`}
+                                type={videoMimeTypes[normalizedExtension] || 'video/mp4'}
+                            />
                             Your browser does not support the video tag.
                         </video>
                     </div>
