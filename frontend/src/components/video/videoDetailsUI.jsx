@@ -7,7 +7,7 @@ function VideoDetailsPage() {
     const navigate = useNavigate();
     
     // Get data passed from the previous page
-    const { jsonPath, file } = location.state || {};
+    const { jsonPath} = location.state || {};
     
     // States
     const [fileDetails, setFileDetails] = useState(null);

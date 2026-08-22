@@ -171,16 +171,6 @@ function PictureViewerPage() {
         return () => clearTimeout(timer);
     }, [basePath]);
 
-    // Handler for setting relative path from directory input
-    const handlerSetRelativePath = (e) => { 
-        const files = Array.from(e.target.files); 
-        if (files.length === 0) return;
-
-        const relative = files[0].webkitRelativePath.split("\\")[0]; 
-        console.log("Selected relative path:", relative);
-        setRelativePath(relative); 
-    };
-
     // set folderPath when basePath or relativePath changes
     useEffect(() => { 
         if (basePath && relativePath) { 

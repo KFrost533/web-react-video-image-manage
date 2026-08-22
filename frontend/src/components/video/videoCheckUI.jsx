@@ -102,7 +102,7 @@ function VideoCheckPage() {
             thumbnailCacheKeys: Object.keys(thumbnailCache),
             thumbnailListKeys: Object.keys(thumbnailList)
         });
-    }, [thumbnailCache]); // Run when thumbnailCache is initialized
+    }, [thumbnailCache, thumbnailList]); // Run when thumbnailCache is initialized
 
     const [useExistingData, setUseExistingData] = useState(true); // Control whether to use existing JSON files
     const [jsonFileCache, setJsonFileCache] = useState({}); // Cache for existing JSON file paths
@@ -410,7 +410,7 @@ function VideoCheckPage() {
         };
 
         // Load thumbnails in batches with retry support
-        const chunkSize = 3;
+        const chunkSize = 6;
         
         console.log(`📦 Processing ${filesToLoad?.length || 0} thumbnails in batches, ${fileIds.length - filesToLoad.length} already available`);
         
@@ -420,9 +420,6 @@ function VideoCheckPage() {
             
             await Promise.allSettled(chunk.map(fileId => loadThumbnail(fileId)));
             
-            if (i + chunkSize < (filesToLoad?.length || 0)) {
-                await new Promise(resolve => setTimeout(resolve, 300)); // Slightly longer pause between batches
-            }
         }
         
         console.log(`🎊 Thumbnail loading process completed for all files`);
@@ -430,17 +427,13 @@ function VideoCheckPage() {
 
     // useEffect for thumbnail loading and restoration
     useEffect(() => {
-        // Always try to load thumbnails when folderData changes
-        if (folderData && folderData.length > 0 && fileJsonPath) {
-            console.log(`Auto-triggering thumbnail loading for ${folderData.length} files on page ${page}`);
-            loadThumbnailsForFiles(folderData, fileJsonPath);
-        }
-        
-        // Also handle explicit shouldLoadThumbnails trigger
         if (shouldLoadThumbnails && folderData && fileJsonPath) {
             console.log(`Manual trigger: loading thumbnails for ${folderData?.length || 0} files on page ${page}`);
             loadThumbnailsForFiles(folderData, fileJsonPath);
             setShouldLoadThumbnails(false);
+        } else if (folderData && folderData.length > 0 && fileJsonPath) {
+            console.log(`Auto-triggering thumbnail loading for ${folderData.length} files on page ${page}`);
+            loadThumbnailsForFiles(folderData, fileJsonPath);
         }
         
         // Also restore cached thumbnails for current folderData
@@ -505,7 +498,11 @@ function VideoCheckPage() {
     // Handler for folder selection from dropdown
     const handleFolderSelect = (selectedFolder) => {
         console.log('Selected folder:', selectedFolder);
+        if (!selectedFolder || !basePath) return;
+
         setRelativePath(selectedFolder);
+        setFolderPath(`${basePath}\\${selectedFolder}`);
+        setFileDataGet(current => !current);
     };
     
     // Auto-fetch folders when basePath changes
@@ -732,6 +729,11 @@ function VideoCheckPage() {
     const [searchKeyword, setSearchKeyword] = useState('');
     const [selectedTag, setSelectedTag] = useState('');
 
+    useEffect(() => {
+        setSelectedTag('');
+        setFilteredData(null);
+    }, [basePath, relativePath]);
+
     // Save tagsList to localStorage when it changes
     useEffect(() => {
         if (tagsList && (tagsList?.length || 0) > 0) {
@@ -740,55 +742,6 @@ function VideoCheckPage() {
     }, [tagsList]);
 
 
-    // Enhanced filtering function
-    const applyFilters = () => {
-        if (!allFilesData || !Array.isArray(allFilesData)) return;
-        
-        let filtered = [...allFilesData];
-        
-        // Extension filter
-        if (extensionFilter && extensionFilter !== 'all') {
-            filtered = filtered.filter(file => 
-                file.extension && file.extension.toLowerCase() === extensionFilter.toLowerCase()
-            );
-        }
-        
-        // Size filter
-        if (sizeFilter && sizeFilter !== 'all') {
-            filtered = filtered.filter(file => {
-                const sizeInMB = file.size / (1024 * 1024);
-                switch(sizeFilter) {
-                    case 'small': return sizeInMB < 100;
-                    case 'medium': return sizeInMB >= 100 && sizeInMB < 500;
-                    case 'large': return sizeInMB >= 500 && sizeInMB < 1000;
-                    case 'xlarge': return sizeInMB >= 1000;
-                    default: return true;
-                }
-            });
-        }
-        
-        // Search keyword filter
-        if (searchKeyword && searchKeyword.trim()) {
-            const keyword = searchKeyword.toLowerCase().trim();
-            filtered = filtered.filter(file => 
-                file.name && file.name.toLowerCase().includes(keyword)
-            );
-        }
-        
-        // Tag filter
-        if (selectedTag && selectedTag !== '') {
-            filtered = filtered.filter(file => 
-                file.tags && Array.isArray(file.tags) && file.tags.includes(selectedTag)
-            );
-        }
-        
-        setFilteredData(filtered);
-        setFolderData(filtered.slice(0, itemsPerPage));
-        setTotalPages(Math.max(1, Math.ceil(filtered.length / itemsPerPage)));
-        setPage(1);
-        setShouldLoadThumbnails(true);
-    };
-    
     // Clear all filters
     const clearAllFilters = () => {
         setExtensionFilter('all');
@@ -801,23 +754,53 @@ function VideoCheckPage() {
     
     // Apply filters when filter states change
     useEffect(() => {
-        applyFilters();
+        if (!allFilesData || !Array.isArray(allFilesData)) return;
+
+        let filtered = [...allFilesData];
+
+        if (extensionFilter && extensionFilter !== 'all') {
+            filtered = filtered.filter(file =>
+                file.extension && file.extension.toLowerCase() === extensionFilter.toLowerCase()
+            );
+        }
+
+        if (sizeFilter && sizeFilter !== 'all') {
+            filtered = filtered.filter(file => {
+                const sizeInMB = file.size / (1024 * 1024);
+                switch (sizeFilter) {
+                    case 'small': return sizeInMB < 100;
+                    case 'medium': return sizeInMB >= 100 && sizeInMB < 500;
+                    case 'large': return sizeInMB >= 500 && sizeInMB < 1000;
+                    case 'xlarge': return sizeInMB >= 1000;
+                    default: return true;
+                }
+            });
+        }
+
+        if (searchKeyword && searchKeyword.trim()) {
+            const keyword = searchKeyword.toLowerCase().trim();
+            filtered = filtered.filter(file =>
+                file.name && file.name.toLowerCase().includes(keyword)
+            );
+        }
+
+        if (selectedTag && selectedTag !== '') {
+            filtered = filtered.filter(file =>
+                file.tags && Array.isArray(file.tags) && file.tags.includes(selectedTag)
+            );
+        }
+
+        setFilteredData(filtered);
+        setFolderData(filtered.slice(0, itemsPerPage));
+        setTotalPages(Math.max(1, Math.ceil(filtered.length / itemsPerPage)));
+        setPage(1);
+        setShouldLoadThumbnails(true);
     }, [extensionFilter, sizeFilter, searchKeyword, selectedTag, allFilesData, itemsPerPage]);
 
-    // tag filter function based on tags array in each file data
-    const tagsFilter = async (tag) => {
-        if (!allFilesData || !Array.isArray(allFilesData) || allFilesData.length === 0) { 
-            console.warn('No video files available for tag filtering');
-            return;
-        }
-        const filteredFiles = allFilesData.filter(file => file.tags && file.tags.includes(tag));
-        console.log(`Tag filter "${tag}": ${filteredFiles?.length || 0} files found`);
-        
-        setFilteredData(filteredFiles);
-        setFolderData(filteredFiles.slice(0, itemsPerPage)); // Show first page of filtered results
-        setPage(1); // Reset to first page
-        setTotalPages(Math.max(1, Math.ceil((filteredFiles?.length || 0) / itemsPerPage)));
-        setShouldLoadThumbnails(true);
+    // Select the tag in Filtering Options when a video tag is clicked.
+    const tagsFilter = (tag) => {
+        setSelectedTag(tag);
+        setTagsList(currentTags => currentTags.includes(tag) ? currentTags : [...currentTags, tag]);
     };
 
 

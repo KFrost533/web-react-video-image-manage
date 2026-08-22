@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 // folder management imports
 import PictureViewerPage from './components/image/imageCheckUI';
@@ -7,24 +7,6 @@ import VideoCheckPage from './components/video/videoCheckUI';
 import VideoDetailsPage from './components/video/videoDetailsUI';
 
 function MediaHeader() {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const isVideoActive = location.pathname.startsWith('/file/video');
-    const isImageActive = location.pathname.startsWith('/file/image');
-
-    const tabStyle = (active, accent) => ({
-        padding: '12px 18px',
-        border: 'none',
-        borderRadius: '999px',
-        cursor: 'pointer',
-        fontSize: '15px',
-        fontWeight: '700',
-        color: '#fff',
-        background: active ? accent : 'rgba(255,255,255,0.14)',
-        boxShadow: active ? '0 8px 18px rgba(0,0,0,0.18)' : 'none',
-        transition: 'transform 0.2s ease, background 0.2s ease'
-    });
-
     return (
         <header></header>
     );

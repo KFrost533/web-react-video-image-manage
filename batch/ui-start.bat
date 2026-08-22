@@ -20,26 +20,27 @@ if not exist "%FRONTEND_DIR%" (
 	exit /b 1
 )
 
-echo Checking port 5000 usage...
-set "PORT_IN_USE="
-for /f "tokens=5" %%P in ('netstat -ano ^| findstr /r /c:":5000 .*LISTENING"') do (
-	set "PORT_IN_USE=1"
-	echo Port 5000 in use by PID %%P. Killing process...
-	taskkill /PID %%P /F >nul 2>nul
-)
+tasklist /v | findstr /i /c:"ReactWebUI-Backend" >nul
+if errorlevel 1 goto start_backend
+echo Java backend terminal is already running.
+goto backend_checked
 
-if defined PORT_IN_USE (
-	echo Waiting for port release...
-	timeout /t 1 /nobreak >nul
-) else (
-	echo Port 5000 is free.
-)
-
+:start_backend
 echo Starting Java backend
 echo Starting with Maven (latest source in backend/src/main)...
-Start "ReactWebUI-Backend" cmd /k "cd /d ""%BACKEND_DIR%"" && mvn spring-boot:run -DskipTests"
+start "ReactWebUI-Backend" /D "%BACKEND_DIR%" cmd /k mvn spring-boot:run -DskipTests
 
+:backend_checked
+
+tasklist /v | findstr /i /c:"ReactWebUI-Frontend" >nul
+if errorlevel 1 goto start_frontend
+echo React frontend terminal is already running.
+goto frontend_checked
+
+:start_frontend
 echo Starting React frontend
-Start "ReactWebUI-Frontend" cmd /k "cd /d ""%FRONTEND_DIR%"" && npm start"
+start "ReactWebUI-Frontend" /D "%FRONTEND_DIR%" cmd /k npm start
+
+:frontend_checked
 
 echo All services started.
